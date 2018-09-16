@@ -20,7 +20,7 @@
     "content_scripts": [
         {
             "matches": [ "http://www.cvent.com/events/*", "https://www.cvent.com/events/*"],
-            "js": [ "./libraries/jquery.min.js", "./libraries/vue.js", "./libraries/bootstrap.min.js", "./src/chrome_helper.js"],
+            "js": [ "./libraries/jquery.min.js", "./libraries/vue.min.js", "./libraries/bootstrap.min.js", "./src/chrome_helper.js"],
             "css": ["./libraries/bootstrap.min.css"],
             "run_at": "document_start"
 
