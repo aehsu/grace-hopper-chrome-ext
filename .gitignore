@@ -38,3 +38,16 @@ nosetests.xml
 # Actual ignores
 *~
 docs/_build/*
+
+# IDE
+.idea/
+*.swp
+*#
+.#*
+*~
+
+out/
+
+*.DS_Store
+
+*.sublime-workspace
