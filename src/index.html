@@ -1,0 +1,99 @@
+<div id="scheduleTable" class="mx-3">
+    <template class="calendar_day" v-for="(day, date, dayIndex) in days">
+        <div class="h1 my-3">
+            <span class="badge display_date text-light">{{day.display_date}}</span>
+        </div>
+        <div class="position-relative">
+            <div>
+                <div class="border-bottom"
+                     :style="{ width: getFullDayWidth(day.sessions.length) + 'px',
+                     height: getHalfHourHeight() + 'px' }"
+                     v-for="hour in numHalfHoursInDay(day.first_session_start_time, day.last_session_end_time)">
+                    <span class="time_label fixed_scrolling position-absolute bg-transparent font-weight-bold"
+                    :style="{ width: constantsObject.timeLabelWidth + 'px' }">
+                        {{ getDisplayHours(day.first_session_start_time, (hour-1)/2) }}
+                    </span>
+                </div>
+            </div>
+
+            <template v-for="(session, index) in day.sessions">
+                <div class="session_block card position-absolute mr-1" :class="getTrackClass(session)"
+                     :style="{ height: getHeightForSession(session) + 'px',
+                     width: constantsObject.sessionBlockWidth + 'px',
+                     top:  getTopOffsetForSession(session, day, dayIndex) + 'px',
+                     left: getLeftInsetForSession(index) + 'px'}"
+                     :title="session.description">
+                    <div class="card-body">
+                        <h5 class="card-title">{{session.title}}</h5>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </template>
+</div>
+
+
+<style scoped>
+    body {
+        font-family: 'Brandon Grotesque W01' !important;
+    }
+
+    .time_label {
+        z-index: 100;
+    }
+
+    .display_date {
+        background-color: #4FC3F7;
+    }
+
+    /* TRACKS */
+    .award_series {
+        background-color: #F06292;
+    }
+    .career {
+        background-color: #ef5350;
+    }
+    .cra_w {
+        background-color: #212121;
+        color: #FAFAFA;
+    }
+    .general_session {
+        background-color: #AB47BC;
+    }
+    .internet_of_things_wearable_technology {
+        background-color: #FFEE58;
+        /* emerging tech */
+    }
+    .open_source {
+        background-color: #FF7043;
+    }
+    .organizational_transformation {
+        background-color: #26C6DA;
+    }
+    .poster_session_acm_student_research_competition {
+        background-color: #BDBDBD;
+    }
+    .products_a_to_z {
+        background-color: #FFCA28;
+    }
+    .special_session {
+        background-color: #5C6BC0;
+    }
+
+    /* Other */
+    .lunches_and_receptions {
+        background-color: #66BB6A;
+    }
+    .faculty {
+        background-color: #66BB6A;
+    }
+
+    /* Technology */
+
+    .artificial_intelligence, .community, .computer_systems_engineering, .data_science,
+    .featured_session, .human_computer_interaction, .interactive_media, .security_privacy,
+    .software_engineering, .tech_for_women {
+        background-color: #29B6F6;
+    }
+
+</style>
