@@ -1,6 +1,6 @@
 {
     "name": "Grace Hopper 2018 Calendar View",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "Make the Grace Hopper 2018 schedule easier to visualize!",
     "permissions": ["storage", "declarativeContent", "activeTab"],
     "background": {
