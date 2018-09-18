@@ -104,17 +104,16 @@ function bindHorizontalScrolling() {
     });
 }
 
-
-
 function bindCalendarView(days, constantsObject) {
     $("#ctl00_container1").replaceWith("<div id='scheduleContainer'></div>");
 
     $("#scheduleContainer").load(ChromeHelper.getURL("/src/index.html"), function () {
-        getVueInstance(days, constantsObject);
+        const modalVueInstance = getModalVueInstance();
+        getCalendarVueInstance(days, constantsObject, modalVueInstance);
     });
 }
 
-function getVueInstance(days, constantsObject) {
+function getCalendarVueInstance(days, constantsObject, modalVueInstance) {
     return new Vue({
         el: '#scheduleTable',
         data: {
@@ -155,7 +154,31 @@ function getVueInstance(days, constantsObject) {
 
             getHalfHourHeight: function() {
                 return constantsObject.pixelsPerMinute * constantsObject.minutesPerHour/2;
+            },
+
+            launchModal: function(session) {
+                launchModal(session, modalVueInstance)
             }
         }
     });
+}
+
+function getModalVueInstance() {
+    return new Vue({
+        el: '#sessionModal',
+        data: {
+            session: {},
+        },
+        methods: {
+            getDisplayTime: function(time) {
+                let timeDisplayOptions = {hour: 'numeric', minute: 'numeric'};
+                return new Date(time).toLocaleTimeString([], timeDisplayOptions)
+            }
+        }
+    });
+}
+
+function launchModal(session, modalVueInstance) {
+    modalVueInstance.$data.session = session
+    $('#sessionModal').modal('show');
 }
