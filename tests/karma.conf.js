@@ -16,7 +16,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
         'libraries/jquery.min.js',
-        'libraries/vue.js',
+        'libraries/vue.min.js',
         'tests/helpers/mock_chrome_helper.js',
         'src/calendar_generator.js',
         'tests/helpers/schedule_dom.html',

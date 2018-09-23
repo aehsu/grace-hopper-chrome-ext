@@ -9,24 +9,22 @@
 </div>
 
 <div id="scheduleTable" class="mx-3">
-    <template class="calendar_day" v-for="(day, date, dayIndex) in days">
+    <div class="calendar_day" v-for="(day, date, dayIndex) in days">
         <div class="h1 my-3">
-            <span class="badge display_date text-light">{{day.display_date}}</span>
+            <span class="badge display_date text-light">{{ getFullDisplayDate(day.date) }}</span>
         </div>
-        <div class="position-relative">
-            <div>
-                <div class="border-bottom"
-                     :style="{ width: getFullDayWidth(day.sessions.length) + 'px',
-                     height: getHalfHourHeight() + 'px' }"
-                     v-for="hour in numHalfHoursInDay(day.first_session_start_time, day.last_session_end_time)">
-                    <span class="time_label fixed_scrolling position-absolute bg-transparent font-weight-bold"
-                    :style="{ width: constantsObject.timeLabelWidth + 'px' }">
-                        {{ getDisplayHours(day.first_session_start_time, (hour-1)/2) }}
-                    </span>
-                </div>
+        <div class="position-relative d-inline-block">
+            <div class="border-bottom"
+                 :style="{ width: getFullDayWidth() + 'px',
+                 height: getHalfHourHeight() + 'px' }"
+                 v-for="hour in numHalfHoursInDay(day.first_session_start_time, day.last_session_end_time)">
+                <span class="time_label position-absolute bg-transparent font-weight-bold"
+                :style="{ width: constantsObject.timeLabelWidth + 'px' }">
+                    {{ getDisplayHours(day.first_session_start_time, (hour-1)/2) }}
+                </span>
             </div>
 
-            <template v-for="(session, index) in day.sessions">
+            <template v-for="(session, index) in day.display_sessions">
                 <div class="session_block card position-absolute mr-1" :class="getTrackClass(session)"
                      :style="{ height: getHeightForSession(session) + 'px',
                      width: constantsObject.sessionBlockWidth + 'px',
@@ -35,27 +33,41 @@
                      :title="session.title"
                      v-on:click.capture="launchModal(session)">
                     <div class="card-body p-2">
-                        <h5 class="card-title">{{session.title}}</h5>
+                        <h5 class="card-title">{{ session.title }}</h5>
                     </div>
                 </div>
             </template>
         </div>
-    </template>
+
+        <div class="d-inline-block align-top"
+             :style="{ height: getFullDayHeight(day.first_session_start_time, day.last_session_end_time) + 'px'}">
+            <div class="sticky-top">
+                <div>{{ getDayOfWeekName(day.date) }}</div>
+                <button type="button" class="btn btn-primary mt-2"
+                        v-if="day.current_page !== 0"
+                        v-on:click="getPreviousPage(date)">< Previous</button>
+                <button type="button" class="btn btn-primary mt-2"
+                        v-if="day.current_page < day.num_pages - 1"
+                        v-on:click="getNextPage(date)">Next ></button>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 <div class="modal fade" id="sessionModal" tabindex="-1" role="dialog" aria-labelledby="sessionTitleLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="sessionTitleLabel">{{session.title}}</h5>
+                <h5 class="modal-title" id="sessionTitleLabel">{{ session.title }}</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <div><span class="font-weight-bold">Track:</span> {{session.track}} | <span class="font-weight-bold">Audience Level:</span> {{session.audience_level}}</div>
-                <div class="font-weight-light font-italic">{{getDisplayTime(session.start_time)}} to {{getDisplayTime(session.end_time)}}</div>
-                <div class="mt-2">{{session.description}}</div>
+                <div><span class="font-weight-bold">Track:</span> {{ session.track }} | <span class="font-weight-bold">Audience Level:</span> {{ session.audience_level }}</div>
+                <div class="font-weight-light font-italic">{{ getDisplayTime(session.start_time) }} to {{ getDisplayTime(session.end_time) }}</div>
+                <div class="mt-2">{{ session.description }}</div>
             </div>
         </div>
     </div>
@@ -76,6 +88,10 @@
 
     .card{
         overflow: hidden;
+    }
+
+    .sticky-top {
+        top: 0.5em;
     }
 
     /* TRACKS */
