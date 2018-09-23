@@ -1,7 +1,10 @@
 class ChromeHelper {
     static keys() {
         return {
-            showing_calendar: 'showing_calendar'
+            showing_calendar: 'showing_calendar',
+            hidden_sessions: 'hidden_sessions',
+            favorited_sessions: 'favorited_sessions',
+            review_later_sessions: 'review_later_sessions',
         };
     }
 

@@ -1,7 +1,7 @@
-setup();
+ChromeHelper.loadData(ChromeHelper.keys().hidden_sessions, setup)
 
-function setup() {
-    let days = getSessionInfoFromPage();
+function setup(hiddenSessions) {
+    let days = getSessionInfoFromPage(hiddenSessions);
     const constants = getConstants();
     addDisplayProperties(days, constants);
     bindCalendarView(days, constants);
@@ -20,11 +20,14 @@ function getConstants() {
     }
 }
 
-function getSessionInfoFromPage() {
+function getSessionInfoFromPage(hiddenSessions) {
     let days = {};
     $(".reg-matrix-header-container").each(function(_, value) {
         let currentSession = parseSessionInfo(value);
-        addSession(currentSession, days);
+        // Only add sessions the user has not chosen to hide from their view
+        if (hiddenSessions.indexOf(currentSession.id) === -1) {
+            addSession(currentSession, days);
+        }
     });
 
     return days;
@@ -61,6 +64,10 @@ function parseSessionInfo(divObject) {
 
     let description = $(divObject).find(".session-content").find(".session-description").text();
     currentSession['description'] = $.trim(description);
+
+    // User added attributes
+    currentSession['flagged_for_review'] = false;
+    currentSession['favorited'] = false;
 
     return currentSession;
 }
@@ -113,33 +120,35 @@ function addDisplayProperties(days, constantsObject) {
 function bindCalendarView(days, constantsObject) {
     $("#ctl00_container1").replaceWith("<div id='scheduleContainer'></div>");
 
-    $("#scheduleContainer").load(ChromeHelper.getURL("/src/index.html"), function() {
-        const modalVueInstance = getModalVueInstance();
-        getCalendarVueInstance(days, constantsObject, modalVueInstance);
+    $("#scheduleContainer").load(ChromeHelper.getURL("/src/index.html"), function () {
+        // const modalVueInstance = getModalVueInstance();
+        getCalendarVueInstance(days, constantsObject);
     });
 }
 
-function getCalendarVueInstance(days, constantsObject, modalVueInstance) {
+function getCalendarVueInstance(days, constantsObject) {
     return new Vue({
         el: '#scheduleTable',
         data: {
             days: days,
             constantsObject: constantsObject,
-
+            selectedSession: {},
         },
         methods: {
             getNextPage: function(date) {
                 let day = this.$data.days[date];
                 day.current_page++;
-                const start = day.current_page * constantsObject.pageSize;
-                const end = start + constantsObject.pageSize;
-                day.display_sessions = day.all_sessions.slice(start, end);
+                this.drawPage(day);
 
             },
 
             getPreviousPage: function(date) {
                 let day = this.$data.days[date];
                 day.current_page--;
+                this.drawPage(day)
+            },
+
+            drawPage: function(day) {
                 const start = day.current_page * constantsObject.pageSize;
                 const end = start + constantsObject.pageSize;
                 day.display_sessions = day.all_sessions.slice(start, end);
@@ -182,12 +191,17 @@ function getCalendarVueInstance(days, constantsObject, modalVueInstance) {
                 return new Date(date).toLocaleDateString([], options);
             },
 
+            getDisplayTime: function(time) {
+                let timeDisplayOptions = {hour: 'numeric', minute: 'numeric'};
+                return new Date(time).toLocaleTimeString([], timeDisplayOptions)
+            },
+
             getFullDayWidth: function() {
                 return constantsObject.pageSize * (constantsObject.sessionBlockWidth + constantsObject.sessionBlockMargin) + constantsObject.calendarLeftInset;
             },
 
             getFullDayHeight: function(sessionsStartTime, sessionsEndTime) {
-                return this.numHalfHoursInDay(sessionsStartTime, sessionsEndTime) * (constantsObject.pixelsPerMinute * constantsObject.minutesPerHour/2);
+                return this.numHalfHoursInDay(sessionsStartTime, sessionsEndTime) * (constantsObject.pixelsPerMinute * constantsObject.minutesPerHour / 2);
             },
 
             getHalfHourHeight: function() {
@@ -195,25 +209,62 @@ function getCalendarVueInstance(days, constantsObject, modalVueInstance) {
             },
 
             launchModal: function(session) {
-                launchModal(session, modalVueInstance)
+                this.$data.selectedSession = session;
+                $('#sessionModal').modal('show');
+            },
+
+            hideSession: function(session) {
+                updateSessionList(ChromeHelper.keys().hidden_sessions, session.id);
+                let day = this.$data.days[session.start_date];
+                let newSessions = day.all_sessions;
+                let index = newSessions.indexOf(session);
+                if (index > -1) {
+                    newSessions.splice(index, 1);
+                }
+                this.$data.days[session.start_date].all_sessions = newSessions;
+                day.num_pages = Math.floor(newSessions.length/constantsObject.pageSize);
+                this.drawPage(day);
+            },
+
+            favoriteSession: function(session) {
+                updateSessionList(ChromeHelper.keys().favorited_sessions, session.id)
+                let newSessions = this.$data.days[session.start_date].all_sessions;
+                let index = newSessions.indexOf(session);
+                if (index > -1) {
+                    session.favorited = true;
+                    newSessions[index] = session;
+                }
+                this.$data.days[session.start_date].sessions = newSessions;
+
+            },
+
+            reviewSessionLater: function(session) {
+                updateSessionList(ChromeHelper.keys().review_later_sessions, session.id)
+                let newSessions = this.$data.days[session.start_date].all_sessions;
+                let index = newSessions.indexOf(session);
+                if (index > -1) {
+                    session.flagged_for_review = true;
+                    newSessions[index] = session;
+                }
+                this.$data.days[session.start_date].sessions = newSessions;
             }
         }
     });
 }
 
-function getModalVueInstance() {
-    return new Vue({
-        el: '#sessionModal',
-        data: {
-            session: {},
-        },
-        methods: {
-            getDisplayTime: function(time) {
-                let timeDisplayOptions = {hour: 'numeric', minute: 'numeric'};
-                return new Date(time).toLocaleTimeString([], timeDisplayOptions)
-            }
-        }
-    });
+function addUniqueItemToList(list, item) {
+    if (list.indexOf(item) === -1) {
+        list.push(item)
+    }
+    return list
+}
+
+function updateSessionList(key, sessionId) {
+    ChromeHelper.loadData(key, function(currentList) {
+        const updatedList = addUniqueItemToList(currentList, sessionId);
+        ChromeHelper.setData(key, updatedList);
+        console.log(updatedList);
+    })
 }
 
 function launchModal(session, modalVueInstance) {

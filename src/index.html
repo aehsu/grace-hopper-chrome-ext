@@ -5,6 +5,8 @@
         <li>2. Any filters applied to the original schedule list will be reflected when the calendar view is shown (apply filters using Advanced Search)</li>
         <li>3. Click on a session to display a modal with more information about the session</li>
         <li>4. Sessions are color coded by track</li>
+        <li>5. To view more sessions for a day click the "next" button</li>
+        <li>6. You can now hide, favorite &#9733; or mark a session to be reviewed later &#9888; (Note: being able to see these lists or filter by choice is still a work in progress)</li>
     </ul>
 </div>
 
@@ -25,6 +27,7 @@
             </div>
 
             <template v-for="(session, index) in day.display_sessions">
+
                 <div class="session_block card position-absolute mr-1" :class="getTrackClass(session)"
                      :style="{ height: getHeightForSession(session) + 'px',
                      width: constantsObject.sessionBlockWidth + 'px',
@@ -33,7 +36,13 @@
                      :title="session.title"
                      v-on:click.capture="launchModal(session)">
                     <div class="card-body p-2">
-                        <h5 class="card-title">{{ session.title }}</h5>
+                        <h5 class="card-title">
+                            <span v-if="session.favorited"
+                                  :class="[session.track === 'Products A to Z' ? 'text-dark' : 'text-warning']">&#9733;</span>
+                            <span v-if="session.flagged_for_review"
+                                  class="font-weight-bold">&#9888;</span>
+                            {{ session.title }}
+                        </h5>
                     </div>
                 </div>
             </template>
@@ -51,23 +60,39 @@
                         v-on:click="getNextPage(date)">Next ></button>
             </div>
         </div>
-
     </div>
-</div>
 
-<div class="modal fade" id="sessionModal" tabindex="-1" role="dialog" aria-labelledby="sessionTitleLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="sessionTitleLabel">{{ session.title }}</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div><span class="font-weight-bold">Track:</span> {{ session.track }} | <span class="font-weight-bold">Audience Level:</span> {{ session.audience_level }}</div>
-                <div class="font-weight-light font-italic">{{ getDisplayTime(session.start_time) }} to {{ getDisplayTime(session.end_time) }}</div>
-                <div class="mt-2">{{ session.description }}</div>
+    <div class="modal fade" id="sessionModal" tabindex="-1" role="dialog" aria-labelledby="sessionTitleLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sessionTitleLabel">{{selectedSession.title}}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div><span class="font-weight-bold">Track:</span> {{selectedSession.track}} | <span class="font-weight-bold">Audience Level:</span> {{selectedSession.audience_level}}</div>
+                    <div class="font-weight-light font-italic">{{getDisplayTime(selectedSession.start_time)}} to {{getDisplayTime(selectedSession.end_time)}}</div>
+                    <div class="mt-2">{{selectedSession.description}}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger"
+                            data-dismiss="modal"
+                            v-on:click="hideSession(selectedSession)">
+                        Hide
+                    </button>
+                    <button type="button" class="btn btn-warning"
+                            data-dismiss="modal"
+                            v-on:click="reviewSessionLater(selectedSession)">
+                        Review Later
+                    </button>
+                    <button type="button" class="btn btn-success"
+                            data-dismiss="modal"
+                            v-on:click="favoriteSession(selectedSession)">
+                        Add to Favorites
+                    </button>
+                </div>
             </div>
         </div>
     </div>
