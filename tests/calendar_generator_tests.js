@@ -11,55 +11,55 @@ describe("Calendar Generator", function() {
         let days = getSessionInfoFromPage();
         const tuesdayDate = 1537880400000;
         const tuesdayObject = {
-            display_date: 'Tuesday, September 25, 2018',
+            date: 1537880400000,
             first_session_start_time: 1537907400000,
             last_session_end_time: 1537920000000
         };
 
         const wednesdayDate = 1537966800000;
         const wednesdayObject = {
-            display_date: 'Wednesday, September 26, 2018',
+            date: 1537966800000,
             first_session_start_time: 1537957800000,
             last_session_end_time: 1538004600000
         };
 
         const thursdayDate = 1538053200000;
         const thursdayObject = {
-            display_date: 'Thursday, September 27, 2018',
+            date: 1538053200000,
             first_session_start_time: 1538047800000,
             last_session_end_time: 1538083800000
         };
 
         const fridayDate = 1538139600000;
         const fridayObject = {
-            display_date: 'Friday, September 28, 2018',
+            date: 1538139600000,
             first_session_start_time: 1538139600000,
             last_session_end_time: 1538190000000
         };
 
         // Tuesday
-        expect(days[tuesdayDate].display_date).toBe(tuesdayObject.display_date);
+        expect(days[tuesdayDate].date).toBe(tuesdayObject.date);
         expect(days[tuesdayDate].first_session_start_time).toBe(tuesdayObject.first_session_start_time);
         expect(days[tuesdayDate].last_session_end_time).toBe(tuesdayObject.last_session_end_time);
-        expect(days[tuesdayDate].sessions.length).toBe(5);
+        expect(days[tuesdayDate].all_sessions.length).toBe(5);
 
         // Wednesday
-        expect(days[wednesdayDate].display_date).toBe(wednesdayObject.display_date);
+        expect(days[wednesdayDate].date).toBe(wednesdayObject.date);
         expect(days[wednesdayDate].first_session_start_time).toBe(wednesdayObject.first_session_start_time);
         expect(days[wednesdayDate].last_session_end_time).toBe(wednesdayObject.last_session_end_time);
-        expect(days[wednesdayDate].sessions.length).toBe(126);
+        expect(days[wednesdayDate].all_sessions.length).toBe(126);
 
         // Thursday
-        expect(days[thursdayDate].display_date).toBe(thursdayObject.display_date);
+        expect(days[thursdayDate].date).toBe(thursdayObject.date);
         expect(days[thursdayDate].first_session_start_time).toBe(thursdayObject.first_session_start_time);
         expect(days[thursdayDate].last_session_end_time).toBe(thursdayObject.last_session_end_time);
-        expect(days[thursdayDate].sessions.length).toBe(172);
+        expect(days[thursdayDate].all_sessions.length).toBe(172);
 
         // Friday
-        expect(days[fridayDate].display_date).toBe(fridayObject.display_date);
+        expect(days[fridayDate].date).toBe(fridayObject.date);
         expect(days[fridayDate].first_session_start_time).toBe(fridayObject.first_session_start_time);
         expect(days[fridayDate].last_session_end_time).toBe(fridayObject.last_session_end_time);
-        expect(days[fridayDate].sessions.length).toBe(104);
+        expect(days[fridayDate].all_sessions.length).toBe(104);
     });
 
     // Tests parseSessionInfo from various sessions
@@ -341,7 +341,7 @@ describe("Calendar Generator", function() {
 describe("Vue Instance Methods", function() {
     document.body.innerHTML = '<div id="scheduleTable"></div>';
     const constants = getConstants();
-    const VueInstance = getVueInstance({}, constants);
+    const VueInstance = getCalendarVueInstance({}, constants, {});
     const methods = VueInstance.$options.methods;
 
 
@@ -504,7 +504,7 @@ describe("Vue Instance Methods", function() {
     // Tests getTopOffsetForSession
     it('get top offset for 11:30am session on Wednesday', function() {
         const day = {
-            display_date: 'Tuesday, September 25, 2018',
+            display_date: 1537880400000,
             first_session_start_time: 1537907400000,
             last_session_end_time: 1537920000000,
         };
@@ -575,7 +575,6 @@ describe("Vue Instance Methods", function() {
         expect(methods.getLeftInsetForSession(37)).toBe(7115);
     });
 
-
     // Test getNumHalfHoursInDay
     it('correctly calculate number of half hours in a day that starts on a half hour and ends on an hour', function() {
         expect(methods.numHalfHoursInDay(1537907400000, 1537920000000)).toBe(8);
@@ -585,8 +584,17 @@ describe("Vue Instance Methods", function() {
         expect(methods.numHalfHoursInDay(1537957800000, 1538004600000)).toBe(26);
     });
 
-    // Test getDisplayHours
+
     // TODO: These tests will probably fail in other timezones
+    // Test getFullDisplayDate
+    it('correctly print out the full date', function() {
+        expect(methods.getFullDisplayDate(1537880400000)).toBe("Tuesday, September 25, 2018");
+        expect(methods.getFullDisplayDate(1537966800000)).toBe("Wednesday, September 26, 2018");
+        expect(methods.getFullDisplayDate(1538053200000)).toBe("Thursday, September 27, 2018");
+        expect(methods.getFullDisplayDate(1538139600000)).toBe("Friday, September 28, 2018");
+    });
+
+    // Test getDisplayHours
     it('correctly display first hour of the day', function() {
         expect(methods.getDisplayHours(1538139600000, 0)).toBe("9:00 AM");
     });
@@ -599,10 +607,27 @@ describe("Vue Instance Methods", function() {
         expect(methods.getDisplayHours(1538139600000, 4.5)).toBe("1:30 PM");
     });
 
+
+    // Test getDayOfWeekName
+    it('correctly print out the full date', function() {
+        expect(methods.getDayOfWeekName(1537880400000)).toBe("Tuesday");
+        expect(methods.getDayOfWeekName(1537966800000)).toBe("Wednesday");
+        expect(methods.getDayOfWeekName(1538053200000)).toBe("Thursday");
+        expect(methods.getDayOfWeekName(1538139600000)).toBe("Friday");
+    });
+
     // Test getFullDayWidth
     it('full day width is calculated correctly', function() {
-        expect(methods.getFullDayWidth(50)).toBe(9585);
-        expect(methods.getFullDayWidth(4)).toBe(845);
+        expect(methods.getFullDayWidth()).toBe(1415);
+    });
+
+    // Test getFullDayHeight
+    it('correctly calculate the height of a 4 hour day', function() {
+        expect(methods.getFullDayHeight(1537907400000, 1537920000000)).toBe(480);
+    });
+
+    it('correctly calculate the height of a 13 hour day', function() {
+        expect(methods.getFullDayHeight(1537957800000, 1538004600000)).toBe(1560);
     });
 
     // Test getHalfHourHeight

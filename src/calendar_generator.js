@@ -2,8 +2,9 @@ setup();
 
 function setup() {
     let days = getSessionInfoFromPage();
-    bindCalendarView(days, getConstants());
-    bindHorizontalScrolling();
+    const constants = getConstants();
+    addDisplayProperties(days, constants);
+    bindCalendarView(days, constants);
 }
 
 function getConstants() {
@@ -14,13 +15,14 @@ function getConstants() {
         sessionBlockWidth: 185,
         sessionBlockMargin: 5,
         calendarLeftInset: 85,
-        timeLabelWidth: 77
+        timeLabelWidth: 77,
+        pageSize: 7
     }
 }
 
 function getSessionInfoFromPage() {
     let days = {};
-    $(".reg-matrix-header-container").each(function (_, value) {
+    $(".reg-matrix-header-container").each(function(_, value) {
         let currentSession = parseSessionInfo(value);
         addSession(currentSession, days);
     });
@@ -68,22 +70,23 @@ function addSession(session, days) {
     let startTime = getHalfHourStartTime(session.start_time);
     let endTime = getHalfHourEndTime(session.end_time);
     if (sessionDate in days) {
-        days[sessionDate].sessions.push(session);
+        let day = days[sessionDate];
+        day.all_sessions.push(session);
 
-        if (startTime < days[sessionDate].first_session_start_time) {
-            days[sessionDate].first_session_start_time = startTime
+        if (startTime < day.first_session_start_time) {
+            day.first_session_start_time = startTime
         }
 
-        if (endTime > days[sessionDate].last_session_end_time) {
-            days[sessionDate].last_session_end_time = endTime
+        if (endTime > day.last_session_end_time) {
+            day.last_session_end_time = endTime
         }
+
     } else {
-        let dateDisplayOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         days[sessionDate] = {
-            display_date: new Date(sessionDate).toLocaleDateString([], dateDisplayOptions),
+            date: sessionDate,
             first_session_start_time: startTime,
             last_session_end_time: endTime,
-            sessions: [session]
+            all_sessions: [session],
         }
     }
 }
@@ -98,16 +101,19 @@ function getHalfHourEndTime(time) {
     return originalTime.setMinutes(Math.ceil(originalTime.getMinutes() / 30) * 30);
 }
 
-function bindHorizontalScrolling() {
-    $(window).scroll(function () {
-        $(".fixed_scrolling").css({left: this.scrollX + 5});
+function addDisplayProperties(days, constantsObject) {
+    Object.keys(days).forEach(function(date) {
+        let day = days[date];
+        day.current_page = 0;
+        day.num_pages = Math.floor(day.all_sessions.length/constantsObject.pageSize);
+        day.display_sessions = day.all_sessions.slice(0, constantsObject.pageSize);
     });
 }
 
 function bindCalendarView(days, constantsObject) {
     $("#ctl00_container1").replaceWith("<div id='scheduleContainer'></div>");
 
-    $("#scheduleContainer").load(ChromeHelper.getURL("/src/index.html"), function () {
+    $("#scheduleContainer").load(ChromeHelper.getURL("/src/index.html"), function() {
         const modalVueInstance = getModalVueInstance();
         getCalendarVueInstance(days, constantsObject, modalVueInstance);
     });
@@ -118,38 +124,70 @@ function getCalendarVueInstance(days, constantsObject, modalVueInstance) {
         el: '#scheduleTable',
         data: {
             days: days,
-            constantsObject: constantsObject
+            constantsObject: constantsObject,
+
         },
         methods: {
+            getNextPage: function(date) {
+                let day = this.$data.days[date];
+                day.current_page++;
+                const start = day.current_page * constantsObject.pageSize;
+                const end = start + constantsObject.pageSize;
+                day.display_sessions = day.all_sessions.slice(start, end);
+
+            },
+
+            getPreviousPage: function(date) {
+                let day = this.$data.days[date];
+                day.current_page--;
+                const start = day.current_page * constantsObject.pageSize;
+                const end = start + constantsObject.pageSize;
+                day.display_sessions = day.all_sessions.slice(start, end);
+            },
+
             /// Converts the name of the track to a class name (e.g. from "Artificial Intelligence" to "artificial_intelligence"
-            getTrackClass: function (session) {
+            getTrackClass: function(session) {
                 return session.track.toLowerCase().replace(/[^a-zA-Z ]/g, ' ').split(' ').join('_');
             },
 
-            getHeightForSession: function (session) {
+            getHeightForSession: function(session) {
                 return ((session.end_time - session.start_time) / constantsObject.millisecondsPerMinute) * constantsObject.pixelsPerMinute;
             },
 
-            getTopOffsetForSession: function (session, day) {
+            getTopOffsetForSession: function(session, day) {
                 return ((session.start_time - day.first_session_start_time) / constantsObject.millisecondsPerMinute) * constantsObject.pixelsPerMinute;
             },
 
-            getLeftInsetForSession: function (index) {
+            getLeftInsetForSession: function(index) {
                 return index * (constantsObject.sessionBlockWidth + constantsObject.sessionBlockMargin) + constantsObject.calendarLeftInset;
             },
 
-            numHalfHoursInDay: function (sessionsStartTime, sessionsEndTime) {
+            numHalfHoursInDay: function(sessionsStartTime, sessionsEndTime) {
                 return Math.ceil(((sessionsEndTime - sessionsStartTime) / constantsObject.millisecondsPerMinute) / constantsObject.minutesPerHour) * 2;
             },
 
-            getDisplayHours: function (startTime, hoursSince) {
-                let timeDisplayOptions = {hour: 'numeric', minute: 'numeric'};
+            getFullDisplayDate: function(date) {
+                let dateDisplayOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                return new Date(date).toLocaleDateString([], dateDisplayOptions);
+            },
+
+            getDisplayHours: function(startTime, hoursSince) {
+                let timeDisplayOptions = { hour: 'numeric', minute: 'numeric' };
                 let timeToDisplay = startTime + hoursSince * constantsObject.minutesPerHour * constantsObject.millisecondsPerMinute;
                 return new Date(timeToDisplay).toLocaleTimeString([], timeDisplayOptions)
             },
 
-            getFullDayWidth: function(numSessions) {
-                return numSessions * (constantsObject.sessionBlockWidth + constantsObject.sessionBlockMargin) + constantsObject.calendarLeftInset;
+            getDayOfWeekName: function(date) {
+                let options = { weekday: 'long' }
+                return new Date(date).toLocaleDateString([], options);
+            },
+
+            getFullDayWidth: function() {
+                return constantsObject.pageSize * (constantsObject.sessionBlockWidth + constantsObject.sessionBlockMargin) + constantsObject.calendarLeftInset;
+            },
+
+            getFullDayHeight: function(sessionsStartTime, sessionsEndTime) {
+                return this.numHalfHoursInDay(sessionsStartTime, sessionsEndTime) * (constantsObject.pixelsPerMinute * constantsObject.minutesPerHour/2);
             },
 
             getHalfHourHeight: function() {
